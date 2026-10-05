@@ -1,0 +1,11 @@
+# Core Dependencies
+pydantic
+requests
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+facebook-sdk
+python-dotenv
+ffmpeg-python
+pandas
+numpy

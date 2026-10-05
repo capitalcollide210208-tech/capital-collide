@@ -1,0 +1,6 @@
+{
+  "AUTO_SPEND": false,
+  "ALLOW_PAID_COMPUTE": false,
+  "ALLOW_PAID_API_FALLBACK": false,
+  "COST_LIMIT_USD": 0.0
+}
