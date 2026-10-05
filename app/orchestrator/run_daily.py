@@ -4,11 +4,24 @@ import json
 from datetime import datetime
 from typing import List, Dict
 
+from app.topic_discovery.engine import TopicDiscoveryEngine
+from app.research.engine import ResearchEngine
+from app.fact_check.engine import FactCheckEngine
+from app.story.engine import StoryEngine
+from app.script.engine import ScriptEngine
+
 class DailyOrchestrator:
     def __init__(self, job_dir="jobs"):
         self.job_dir = job_dir
         if not os.path.exists(job_dir):
             os.makedirs(job_dir)
+        
+        # Initialize Engines
+        self.topic_engine = TopicDiscoveryEngine()
+        self.research_engine = ResearchEngine()
+        self.fact_engine = FactCheckEngine()
+        self.story_engine = StoryEngine()
+        self.script_engine = ScriptEngine()
 
     def create_job(self) -> str:
         job_id = f"JOB_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -47,7 +60,6 @@ class DailyOrchestrator:
         
         state["stages"][stage] = status
         
-        # If all stages are PASS, mark job as completed
         if all(s == "PASS" for s in state["stages"].values()):
             state["status"] = "COMPLETED"
         elif any(s == "FAILED_TERMINAL" for s in state["stages"].values()):
@@ -60,43 +72,34 @@ class DailyOrchestrator:
         job_id = self.create_job()
         print(f"Starting production cycle for {job_id}...")
         
-        # This is where the sequence of stage calls will happen
-        # For now, this is a skeleton that will be populated as we build each module
-        stages = [
-            ("topic_discovery", self.stage_topic_discovery),
-            ("research", self.stage_research),
-            ("fact_check", self.stage_fact_check),
-            # ... other stages
-        ]
-        
-        for stage_name, stage_func in stages:
-            try:
-                print(f"Executing {stage_name}...")
-                success = stage_func(job_id)
-                if success:
-                    self.update_stage(job_id, stage_name, "PASS")
-                else:
-                    self.update_stage(job_id, stage_name, "FAILED_RETRYABLE")
-                    break # Stop cycle on failure
-            except Exception as e:
-                print(f"Error in {stage_name}: {e}")
-                self.update_stage(job_id, stage_name, "FAILED_TERMINAL")
-                break
-
-    def stage_topic_discovery(self, job_id):
-        # Placeholder for topic discovery logic
-        print(f"Topic discovery for {job_id}...")
-        return True
-
-    def stage_research(self, job_id):
-        # Placeholder for research logic
-        print(f"Research for {job_id}...")
-        return True
-
-    def stage_fact_check(self, job_id):
-        # Placeholder for fact check logic
-        print(f"Fact checking for {job_id}...")
-        return True
+        # Sequence of execution
+        try:
+            # 1. Topic Discovery
+            topic_data = self.topic_engine.discover_topic(job_id, self.job_dir)
+            self.update_stage(job_id, "topic_discovery", "PASS")
+            
+            # 2. Research
+            research_data = self.research_engine.conduct_research(topic_data["topic"], job_id, self.job_dir)
+            self.update_stage(job_id, "research", "PASS")
+            
+            # 3. Fact Check
+            verified_data = self.fact_engine.verify_research(research_data, job_id, self.job_dir)
+            self.update_stage(job_id, "fact_check", "PASS")
+            
+            # 4. Story Construction
+            story_data = self.story_engine.construct_story(verified_data, job_id, self.job_dir)
+            self.update_stage(job_id, "story", "PASS")
+            
+            # 5. Script Writing
+            script_data = self.script_engine.write_script(story_data, job_id, self.job_dir)
+            self.update_stage(job_id, "script", "PASS")
+            
+            print(f"Intelligence Pipeline completed for {job_id}. Script is ready.")
+            
+        except Exception as e:
+            print(f"Production cycle failed: {e}")
+            # Update the specific stage that failed
+            # (In a real loop, we'd track which one failed)
 
 if __name__ == "__main__":
     orchestrator = DailyOrchestrator()
