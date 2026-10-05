@@ -9,6 +9,8 @@ from app.research.engine import ResearchEngine
 from app.fact_check.engine import FactCheckEngine
 from app.story.engine import StoryEngine
 from app.script.engine import ScriptEngine
+from app.voice.engine import VoiceEngine
+from app.visual_director.engine import VisualDirector
 
 class DailyOrchestrator:
     def __init__(self, job_dir="jobs"):
@@ -22,6 +24,8 @@ class DailyOrchestrator:
         self.fact_engine = FactCheckEngine()
         self.story_engine = StoryEngine()
         self.script_engine = ScriptEngine()
+        self.voice_engine = VoiceEngine()
+        self.visual_engine = VisualDirector()
 
     def create_job(self) -> str:
         job_id = f"JOB_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -72,7 +76,6 @@ class DailyOrchestrator:
         job_id = self.create_job()
         print(f"Starting production cycle for {job_id}...")
         
-        # Sequence of execution
         try:
             # 1. Topic Discovery
             topic_data = self.topic_engine.discover_topic(job_id, self.job_dir)
@@ -94,12 +97,18 @@ class DailyOrchestrator:
             script_data = self.script_engine.write_script(story_data, job_id, self.job_dir)
             self.update_stage(job_id, "script", "PASS")
             
-            print(f"Intelligence Pipeline completed for {job_id}. Script is ready.")
+            # 6. Voice Generation
+            voice_file = self.voice_engine.generate_voiceover(script_data["full_script"], job_id, self.job_dir)
+            self.update_stage(job_id, "voice", "PASS")
+            
+            # 7. Visual Planning
+            scene_plan = self.visual_engine.create_scene_plan(script_data, job_id, self.job_dir)
+            self.update_stage(job_id, "visual_director", "PASS")
+            
+            print(f"Asset Generation completed for {job_id}. Voice and Scene Plan are ready.")
             
         except Exception as e:
             print(f"Production cycle failed: {e}")
-            # Update the specific stage that failed
-            # (In a real loop, we'd track which one failed)
 
 if __name__ == "__main__":
     orchestrator = DailyOrchestrator()
