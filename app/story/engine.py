@@ -1,27 +1,25 @@
 import json
 import os
 from typing import Dict, Any
+from app.common.llm_client import LLMClient
 
 class StoryEngine:
-    def __init__(self, api_key=None):
-        self.api_key = api_key
+    def __init__(self, llm_client: LLMClient):
+        self.llm = llm_client
 
     def construct_story(self, verified_data: Dict[str, Any], job_id: str, job_dir="jobs") -> Dict[str, Any]:
-        print("Constructing documentary narrative...")
+        print("AI is constructing the documentary narrative...")
         
-        # Story structure: HOOK -> CONTEXT -> RISE -> CONFLICT -> TURNING POINT -> CONSEQUENCES -> CONCLUSION
-        story = {
-            "structure": {
-                "hook": "The company that changed everything, then lost it all.",
-                "context": "In the early 2010s, the market was stagnant until...",
-                "rise": "Company X introduced a disruptive technology that...",
-                "conflict": "But as they grew, internal friction and competition emerged...",
-                "turning_point": "The moment everything changed was the 2014 decision to...",
-                "consequences": "This led to a massive shift in the industry, resulting in...",
-                "conclusion": "The legacy of Company X serves as a warning for today's founders."
-            },
-            "tone": "Professional, cinematic, objective"
-        }
+        system_prompt = "You are a master storyteller and documentary writer. Your goal is to transform dry facts into a gripping, cinematic narrative that maintains extreme curiosity."
+        user_prompt = f"Using these verified facts: {json.dumps(verified_data)}, construct a story structure. I need a JSON object with a 'structure' key containing: 'hook', 'context', 'rise', 'conflict', 'turning_point', 'consequences', and 'conclusion'. Ensure the narrative flow is high-tension and professional."
+        
+        response = self.llm.ask(system_prompt, user_prompt)
+        
+        try:
+            cleaned_response = response.strip().replace("```json", "").replace("```", "").strip()
+            story = json.loads(cleaned_response)
+        except:
+            story = {"structure": {"hook": response, "conclusion": "End of story"}}
         
         # Save to job folder
         job_path = os.path.join(job_dir, job_id)

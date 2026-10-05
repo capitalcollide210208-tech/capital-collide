@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from typing import List, Dict
 
+from app.common.llm_client import LLMClient
 from app.topic_discovery.engine import TopicDiscoveryEngine
 from app.research.engine import ResearchEngine
 from app.fact_check.engine import FactCheckEngine
@@ -18,12 +19,15 @@ class DailyOrchestrator:
         if not os.path.exists(job_dir):
             os.makedirs(job_dir)
         
-        # Initialize Engines
-        self.topic_engine = TopicDiscoveryEngine()
-        self.research_engine = ResearchEngine()
-        self.fact_engine = FactCheckEngine()
-        self.story_engine = StoryEngine()
-        self.script_engine = ScriptEngine()
+        # Initialize Global LLM Client (GLM 5.3 Flash)
+        self.llm = LLMClient()
+        
+        # Initialize Engines with the LLM Client
+        self.topic_engine = TopicDiscoveryEngine(self.llm)
+        self.research_engine = ResearchEngine(self.llm)
+        self.fact_engine = FactCheckEngine(self.llm)
+        self.story_engine = StoryEngine(self.llm)
+        self.script_engine = ScriptEngine(self.llm)
         self.voice_engine = VoiceEngine()
         self.visual_engine = VisualDirector()
 
@@ -105,7 +109,7 @@ class DailyOrchestrator:
             scene_plan = self.visual_engine.create_scene_plan(script_data, job_id, self.job_dir)
             self.update_stage(job_id, "visual_director", "PASS")
             
-            print(f"Asset Generation completed for {job_id}. Voice and Scene Plan are ready.")
+            print(f"Intelligence and Asset Generation completed for {job_id}. Ready for Video Gen.")
             
         except Exception as e:
             print(f"Production cycle failed: {e}")
